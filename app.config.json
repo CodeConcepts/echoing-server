@@ -1,0 +1,20 @@
+{
+  "echoing": {
+    "guiUrl": "http://localhost:8080",
+    "database": {
+      "connection": "mongodb://localhost/echoing",
+      "options": {
+        "useNewUrlParser": true,
+        "useUnifiedTopology": true
+      }
+    },
+    "email": {
+      "emailTplsDir": "./templates/email",
+      "smtp": {
+        "host": "localhost",
+        "port": 1025,
+        "tls": { "rejectUnauthorized": false }
+      }
+    }
+  }
+}

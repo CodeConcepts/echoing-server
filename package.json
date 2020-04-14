@@ -6,11 +6,21 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "app-root-path": "^3.0.0",
+    "connect-mongo": "^3.2.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
+    "email-templates": "^7.0.4",
     "express": "~4.16.1",
+    "express-session": "^1.17.0",
+    "generate-password": "^1.5.1",
     "http-errors": "~1.6.3",
+    "moment": "^2.24.0",
+    "mongoose": "^5.9.7",
     "morgan": "~1.9.1",
-    "pug": "2.0.0-beta11"
+    "passport": "^0.4.1",
+    "passport-local": "^1.0.0",
+    "pug": "^2.0.4",
+    "q": "^1.5.1"
   }
 }
