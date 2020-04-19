@@ -12,7 +12,7 @@ const pjson = require('../../app.config.json');
 function EmailSender(config) {
     let self = this;
 
-    self.config = extend(pjson.wingnut.email, config);
+    self.config = extend(pjson.echoing.email, config);
 
     return self;
 }

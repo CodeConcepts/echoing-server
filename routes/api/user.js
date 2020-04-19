@@ -59,11 +59,11 @@ router.get('/', authenticate({ roles: ['sysadmin']}), function(req, res, next) {
 });
 
 router.get('/roles', authenticate(), function(req, res){
-    let roles = [{ value:'user', text: 'User' }];
+    let roles = [{ value:'user', text: 'User' }, { value:'manager', text: 'Manager' }];
 
     if(['sysadmin'].indexOf(req.user.role) >= 0)
     {
-        roles = [...roles, { value: 'sysadmin', text: 'System Administrator' }];
+        roles = [...roles, { value: 'admin', text: 'Administrator' }, { value: 'sysadmin', text: 'System Administrator' }];
     }
 
     res.json(res.skeJsonResponse(null, roles));
@@ -180,10 +180,28 @@ router.put('/', authenticate({ user: { body: "id" } }), function(req, res, next)
     if(req.body.emailAddress) updatedUser.emailAddress = req.body.emailAddress;
     if(req.body.forename) updatedUser.forename = req.body.forename;
     if(req.body.surname) updatedUser.surname = req.body.surname;
+    if(req.body.password) updatedUser.hash_password = req.body.password;
 
     if((['sysadmin']).indexOf(req.user.role) >= 0)
     {
         if(req.body.role) updatedUser.role = req.body.role;
+    }
+
+    if(req.user.role === 'manager') {
+        // If the user is a account manager, then they can make a user an account managers.
+        if(req.body.role === 'manager') updatedUser.role = 'manager';
+    }
+
+    // If the user is an super/admin then they can make any user type for client accounts (user or manager).
+    if(req.user.role === 'admin' || req.user.role === 'sysadmin')
+    {
+        if(req.body.role === 'manager') updatedUser.role = 'manager';
+    }
+
+    // If the user is a super admin then they can create more super & admin users
+    if(req.user.role === 'sysadmin' && (req.body.role === 'sysadmin' || req.body.role === 'admin'))
+    {
+        updatedUser.role = req.body.role;
     }
 
     // Lets do the update.
@@ -196,6 +214,7 @@ router.put('/', authenticate({ user: { body: "id" } }), function(req, res, next)
 /* POST create a user */
 router.post('/', authenticate({ roles: ['sysadmin','admin','manager'] }), function(req, res, next) {
     let newUser = {
+        _account: req.body._account,
         emailAddress: req.body.emailAddress,
         forename: req.body.forename,
         surname: req.body.surname,
@@ -208,6 +227,9 @@ router.post('/', authenticate({ roles: ['sysadmin','admin','manager'] }), functi
         active: true,
         role: 'user'
     };
+
+    // We only want sysadmin or admin users to be able to select the user account.
+    if((req.user.role !== 'sysadmin' && req.user.role !== 'admin') || !req.body._account) newUser._account = req.user._account;
 
     if(req.user.role === 'manager') {
         // If the user is a account manager, then they can create new account managers.
@@ -253,9 +275,9 @@ router.post('/', authenticate({ roles: ['sysadmin','admin','manager'] }), functi
             user.populate("_account", (err, user) =>
             {
                 const emailSender = new EmailSender();
-                emailSender.sendMail("no-reply@sidekickengine.com",
+                emailSender.sendMail("no-reply@echoing.io",
                     newUser.emailAddress,
-                    "SidekickEngine User Invite Request",
+                    "Echoing.io User Invite Request",
                     "user-invite",
                     {
                         user: {
@@ -266,7 +288,7 @@ router.post('/', authenticate({ roles: ['sysadmin','admin','manager'] }), functi
                         },
                         account: user._account,
                         links: {
-                            confirm: pjson.guiUrl + "/#/invite?uid=" + user._id.toString()
+                            confirm: pjson.echoing.guiUrl + "/#/invite?uid=" + user._id.toString()
                         }
                     }).then(() => {
                     return res.json(res.skeJsonResponse(null, "User created & Invite Sent."));

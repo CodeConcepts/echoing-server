@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const Schema = mongoose.Schema;
 
 let userModel = new Schema({
+    _account: {type: Schema.Types.ObjectId, ref: 'Account'},
     username: {type: String, required: true},
     forename: {type: String},
     surname: {type: String},
@@ -18,6 +19,9 @@ let userModel = new Schema({
     loginMessage: {type: String},
     lastLogin: {type: Date},
     active: {type: Boolean, default: false},
+    inviteStatus: { type: String, enum: ['invited','accepted'], default: 'accepted' },
+    inviteSent: { type: Date },
+    inviteAccepted: { type: Date },
     updatedBy: {type: Schema.Types.ObjectId, ref: 'User'},
     updated: {type: Date, required: true, default: Date.now},
     createdBy: {type: Schema.Types.ObjectId, ref: 'User'},

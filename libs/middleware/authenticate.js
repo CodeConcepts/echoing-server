@@ -27,7 +27,7 @@ module.exports = function authenticate(authObject) {
         if(authObject.roles)
         {
             if(typeof authObject.roles == 'string' && req.user.role !== authObject.roles) return res.send(401, "Unauthorised: You do not have the correct role (1).");
-            else if(Array.isArray(authObject.roles) && authObject.roles.indexOf(req.user.role) === -1) return res.send(401, "Unauthorised: You do not have the correct role (2).");
+            else if(Array.isArray(authObject.roles) && authObject.roles.indexOf(req.user.role) === -1) return res.status(401).send("Unauthorised: You do not have the correct role (2).");
             //else return next(new Error("Unknown roles type passed in authenticate object, it must be either a string or an array of strings."));
         }
 
