@@ -17,11 +17,11 @@ module.exports = function authenticate(authObject) {
         // Nothing to check, just pass.
         if(!authObject) return next();
 
-        // If the user is a sysadmin user, lets just let them do anything :)
-        if(req.user.role === 'sysadmin') return next();
-
         // If we have a authObject, we need to be logged in
         if(authObject && !req.user) return res.send(401, "Unauthorised: You need to login first.");
+
+        // If the user is a sysadmin user, lets just let them do anything :)
+        if(req.user.role === 'sysadmin') return next();
 
         // Check if we need to be a specific role
         if(authObject.roles)
