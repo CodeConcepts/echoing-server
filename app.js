@@ -39,9 +39,10 @@ passport.deserializeUser(function(obj, done) {
 // Use the LocalStrategy within Passport.
 passport.use(new LocalStrategy({},
     function(username, password, done) {
-      schema.User.findOne({ $or: [ {username: username }, { emailAddress: username } ] }, function(err, user) {
+      schema.User.findOne({ $or: [ {username: username }, { emailAddress: username } ] }).populate('_account').exec(function(err, user) {
         if(err) return done(err);
         if(!user) return done(null, false, { message: 'Incorrect username.' });
+        if(user._account.deleted === true) return done(null, false, { message: 'Inactive/Deleted Account.' });
         if(!user.authenticate(password)) return done(null, false, { message: 'Incorrect password.' });
 
         // Lets make the user object safe to pass around and even pass back to the browser.
@@ -99,6 +100,7 @@ app.use(passport.session());
 app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/api/user'));
+app.use('/api/account', require('./routes/api/account'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

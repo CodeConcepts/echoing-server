@@ -15,6 +15,7 @@ var accountModel = new Schema({
         postcode: { type: String },
         country: { type: String, required: true }
     },
+    billingEmailAddress: { type: String },
     maxUsers: { type: Number, default: 1, required: true },
     billedUsers: { type: Number, default: 0, required: true },
     userCount: { type: Number, default: 0 },
@@ -23,6 +24,7 @@ var accountModel = new Schema({
     lastPaymentDate: { type: Date },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     updated: { type: Date, required: true, default: Date.now },
+    deleted: { type: Boolean, required: true, default: false },
     created: { type: Date, required: true, default: Date.now }
 });
 

@@ -26,8 +26,8 @@ router.put('/password',authenticate({ user: { body: "id" } }), function(req, res
 });
 
 // GET users
-router.get('/', authenticate({ roles: ['sysadmin']}), function(req, res, next) {
-    let search = {};
+router.get('/', authenticate({ roles: ['sysadmin','admin','manager']}), function(req, res, next) {
+    let search = { "_account.deleted": false };
     let limit = (req.query.limit) ? parseInt(req.query.limit) : 50;
     let offset = (req.query.offset) ? parseInt(req.query.offset) : 0;
     if(req.query.search) {
@@ -39,14 +39,31 @@ router.get('/', authenticate({ roles: ['sysadmin']}), function(req, res, next) {
         ];
     }
 
-    schema.User.find(search).skip(offset).limit(limit).exec(function(err, users) {
+    if(req.user.role == 'manager') {
+        search['_account'] = req.user._account;
+        if(search['$or']) search['$or'].push({ 'role': ['user','manager'] });
+        else {
+            search['$or'] = [{ 'role': ['user','manager'] }];
+        }
+    }
+
+    schema.User.aggregate([
+        { $lookup: {
+            from: "accounts",
+            localField: "_account",
+            foreignField: "_id",
+            as: "_account"
+            } },
+        { $match: { "_account.deleted": false } },
+        { $unwind: "$_account" }
+    ]).skip(offset).limit(limit).exec(function(err, users) {
         if(err) return next(err);
         schema.User.countDocuments(search, function(err, count) {
             if(err) return next(err);
             let safeUsers = [];
 
             users.forEach(function(user) {
-                let safeUser = user.toObject();
+                let safeUser = user;
                 safeUser.password = undefined;
                 safeUser.passwordSalt = undefined;
                 safeUser.passwordFormat = undefined;
@@ -172,7 +189,8 @@ router.put('/', authenticate({ user: { body: "id" } }), function(req, res, next)
 
     let updatedUser = {
         updated: new Date(),
-        updatedBy: req.user._id
+        updatedBy: req.user._id,
+        role: 'user'
     };
 
     if(req.body.active) updatedUser.active = req.body.active;
@@ -182,25 +200,27 @@ router.put('/', authenticate({ user: { body: "id" } }), function(req, res, next)
     if(req.body.surname) updatedUser.surname = req.body.surname;
     if(req.body.password) updatedUser.hash_password = req.body.password;
 
-    if((['sysadmin']).indexOf(req.user.role) >= 0)
-    {
-        if(req.body.role) updatedUser.role = req.body.role;
-    }
-
     if(req.user.role === 'manager') {
         // If the user is a account manager, then they can make a user an account managers.
+        updatedUser._account = req.user._account;
         if(req.body.role === 'manager') updatedUser.role = 'manager';
     }
-
     // If the user is an super/admin then they can make any user type for client accounts (user or manager).
-    if(req.user.role === 'admin' || req.user.role === 'sysadmin')
+    else if(req.user.role === 'admin')
     {
-        if(req.body.role === 'manager') updatedUser.role = 'manager';
-    }
+        // They can set the account
+        if(req.body._account) updatedUser._account = req.body._account;
 
+        // Create upto a manager.
+        if(req.body.role == 'user' || req.body.role == 'manager') updatedUser.role = req.body.role;
+    }
     // If the user is a super admin then they can create more super & admin users
-    if(req.user.role === 'sysadmin' && (req.body.role === 'sysadmin' || req.body.role === 'admin'))
+    else if(req.user.role === 'sysadmin')
     {
+        // They can set the account
+        if(req.body._account) updatedUser._account = req.body._account;
+
+        // Create any tpye of account.
         updatedUser.role = req.body.role;
     }
 

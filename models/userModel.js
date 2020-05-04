@@ -15,7 +15,7 @@ let userModel = new Schema({
     passwordSalt: {type: String},
     passwordFormat: {type: String, enum: ['text', 'hash'], default: 'hash'},
     passwordReset: {type: Boolean, default: false},
-    role: {type: String, enum: ['user', 'sysadmin'], default: 'user', required: true},
+    role: {type: String, enum: ['user', 'manager', 'admin', 'sysadmin'], default: 'user', required: true},
     loginMessage: {type: String},
     lastLogin: {type: Date},
     active: {type: Boolean, default: false},
