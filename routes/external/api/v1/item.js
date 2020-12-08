@@ -113,7 +113,7 @@ router.delete('/:id', passport.authenticate('localapikey', { session: false }), 
         if(err) return next(err);
 
         let helper = new ItemHelper(item);
-        helper.complete('deleted', (err, item) {
+        helper.complete('deleted', (err, item) => {
             return res.echoJsonResponse(null,"Item completed with the 'deleted' reason");
         });
     });
