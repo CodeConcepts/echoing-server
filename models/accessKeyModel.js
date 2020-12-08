@@ -2,13 +2,14 @@
  * Created by brett on 01/11/2019.
  */
 const mongoose = require('mongoose');
-const crypto = require('crypto');
+const hat = require('hat');
 const Schema = mongoose.Schema;
 
 let accessKeyModel = new Schema({
     _account: {type: Schema.Types.ObjectId, ref: 'Account'},
     _reservoir: {type: Schema.Types.ObjectId, ref: 'Reservoir'},
     _user: {type: Schema.Types.ObjectId, ref: 'User'},
+    key: {type: String, required: true, default: hat()},
     access: { type: String, enum: ['read','write','full'], required: true, default: 'read'},
     active: {type: Boolean, default: false},
     lastRead: {type: Date},

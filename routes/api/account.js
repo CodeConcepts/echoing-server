@@ -3,7 +3,6 @@ const authenticate = require('../../libs/middleware/authenticate');
 const router = express.Router();
 const schema = require('../../models');
 
-
 // GET accounts
 router.get('/', authenticate({ roles: ['sysadmin','admin']}), function(req, res, next) {
     let search = { deleted: false };
@@ -15,7 +14,7 @@ router.get('/', authenticate({ roles: ['sysadmin','admin']}), function(req, res,
 
     schema.Account.find(search).skip(offset).limit(limit).exec(function(err, accounts) {
         if(err) return next(err);
-        return res.json(res.skeJsonResponse(null, { accounts: accounts, total: accounts.length }));
+        return res.echoJsonResponse(null, { accounts: accounts, total: accounts.length });
     });
 });
 
@@ -23,7 +22,7 @@ router.get('/', authenticate({ roles: ['sysadmin','admin']}), function(req, res,
 router.get('/:id', authenticate({ account: { param: "id" } }), function(req, res, next) {
     schema.Account.findOne({ _id: req.params.id }, function(err, account) {
         if(err) return next(err);
-        return res.json(res.skeJsonResponse(null, account));
+        return res.echoJsonResponse(null, account);
     });
 });
 
@@ -32,7 +31,7 @@ router.delete('/:id', authenticate({ roles: ['sysadmin','admin'] }), function(re
     // and either reallocated them to another user or delete them.
     schema.Account.findOneAndUpdate({ _id: req.params.id }, { deleted: true }).exec(function(err) {
         if(err) return next(err);
-        return res.json(res.skeJsonResponse(null));
+        return res.echoJsonResponse(null);
     });
 });
 
@@ -71,7 +70,7 @@ router.put('/', authenticate({ account: { body: "id" } }), function(req, res, ne
     // Lets do the update.
     schema.Account.updateOne({ _id: req.body.id }, newAccount, function(err, user) {
         if(err) return next(err);
-        return res.json(res.skeJsonResponse(null, "Account Updated."));
+        return res.echoJsonResponse(null, "Account Updated.");
     });
 });
 
@@ -107,7 +106,7 @@ router.post('/', authenticate({ roles: ['sysadmin','admin'] }), function(req, re
     let accountObj = new schema.Account(newAccount);
     accountObj.save(function(err, account) {
         if(err) return next(err);
-        return res.json(res.skeJsonResponse(null, "Account Created."));
+        return res.echoJsonResponse(null, "Account Created.");
     });
 });
 

@@ -2,7 +2,7 @@
   "echoing": {
     "guiUrl": "http://localhost:8080",
     "database": {
-      "connection": "mongodb://localhost/echoing",
+      "connection": "mongodb://vps2.codeconcepts.net/echoing-dev",
       "options": {
         "useNewUrlParser": true,
         "useUnifiedTopology": true

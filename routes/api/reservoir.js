@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const generator = require('generate-password');
 const moment = require('moment');
 const asynk = require('async');
@@ -14,50 +15,64 @@ const pjson = require('../../app.config.json');
 router.get('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), function(req, res, next) {
     let limit = (req.query.limit) ? parseInt(req.query.limit) : 50;
     let offset = (req.query.offset) ? parseInt(req.query.offset) : 0;
+    let search = {};
 
     if(req.query.search) {
-        search['$or'] = [
-            { "_reservoir.name": new RegExp(req.query.search, 'i') },
-        ];
+        search["_reservoir.name"] = new RegExp(req.query.search, 'i');
     }
 
     if(!search['$or']) search['$or'] = [];
-    if(['sysadmin','admin','manager'].indexOf(req.user.role) >= 0) {
-        if(req.user.role == 'manager') search['$or'].push({ '_account._id':  req.user._account });
+    if(req.user.role === 'manager') search['$or'].push({ '_account':  req.user._account._id });
+    if(req.user.role === 'manager' || req.user.role === 'user') search['$or'].push({ '_user':  req.user._id });
 
-        search = {
-            "deleted": false,
-            "_account.deleted": false
-        };
+    search = {
+        "deleted": false,
+        "_account.deleted": false
+    };
 
-        schema.Reservoir.populate('_account').find(search).skip(offset).limit(limit).exec(function(err, reservoirs) {
-            if (err) return next(err);
-            schema.Reservoir.populate('_account').countDocuments(search, function (err, count) {
-                return res.json(res.skeJsonResponse(null, { users: reservoirs, total: count }));
-            });
-        });
-    }
-    else
+    let pipeline = [{ $lookup: {
+                     from: "accounts",
+                     localField: "_account",
+                     foreignField: "_id",
+                     as: "_account"
+                    }},
+                    { $unwind: "$_account" },
+                    { $match: search }];
+
+    if(req.user.role !== 'sysadmin' && req.user.role !== 'admin'&& req.user.role !== 'manager')
     {
-        search['$or'].push({ '_user':  req.user._id });
-
-        schema.AccessKey.populate(['_account','_reservoir']).find(search).skip(offset).limit(limit).exec(function(err, accessKeys) {
-            if (err) return next(err);
-            schema.AccessKey.populate(['_account','_reservoir']).countDocuments(search, function (err, count) {
-                if (err) return next(err);
-                let reservoirs = [];
-
-                asynk.eachSeries(accessKeys, (accessKey, nextKey) => {
-                        reservoirs.push(accessKey._reservoir.toObject());
-                        return nextKey;
-                    },
-                    (err) => {
-                        if(err) return next(err);
-                        return res.json(res.skeJsonResponse(null, { users: reservoirs, total: count }));
-                    });
-            });
+        //let cuid = mongoose.Types.ObjectId(req.user._id);
+        pipeline.push({
+            $lookup: {
+                from: 'accesskeys',
+                let: { reservoirID: '$_id' },
+                pipeline: [
+                    { $match:
+                        { $expr:
+                            { $and:
+                                [
+                                    { $eq: ['$_reservoir','$$reservoirID'] },
+                                    { $eq: ['$_user', { $toObjectId: req.user._id }] }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                as: 'userAccess'
+            }
+        });
+        pipeline.push({
+            $unwind: '$userAccess'
         });
     }
+
+    schema.Reservoir.aggregate(pipeline).skip(offset).limit(limit).exec(function(err, reservoirs) {
+        if (err) return next(err);
+        pipeline.push({ $count: 'count' });
+        schema.Reservoir.aggregate(pipeline).exec(function (err, result) {
+            return res.echoJsonResponse(null, { reservoirs: reservoirs, total: result.count });
+        });
+    });
 });
 
 /* GET reservoir by id */
@@ -78,7 +93,7 @@ router.get('/:id', authenticate({ roles: ['sysadmin','admin','manager','user']})
     schema.AccessKey.populate(['_account','_reservoir']).findOne(search, function(err, accessKey) {
         if(err) return next(err);
 
-        return res.json(res.skeJsonResponse(null, accessKey._reservoir));
+        return res.echoJsonResponse(null, accessKey._reservoir);
     });
 });
 
@@ -98,8 +113,8 @@ router.delete('/:id', authenticate({ roles: ['sysadmin','admin','manager','user'
 
     schema.AccessKey.populate(['_account','_reservoir']).findOne(search, function(err, accessKey) {
         if(err) return next(err);
-        if(accessKey.access !== 'full') return res.send(401, "Unauthorised: You do not have the correct permissions to delete this item.");
-        if(!accessKey.access) return res.json(res.skeJsonResponse(new Error("Failed to locate reservoir.")));
+        if(req.user.role !== 'sysadmin' && req.user.role !== 'sysadmin' &&accessKey.access !== 'full') return res.send(401, "Unauthorised: You do not have the correct permissions to delete this item.");
+        if(!accessKey.access) return res.echoJsonResponse(new Error("Failed to locate reservoir."));
 
         schema.ReservoirItem.delete({ _reservoir: accessKey._reservoir._id }, (err) => {
             if(err) return next(err);
@@ -114,9 +129,9 @@ router.delete('/:id', authenticate({ roles: ['sysadmin','admin','manager','user'
                     reservoir.deletedBy = req.user._id;
                     reservoir.save((err) => {
                         if(err) return next(err);
-                        return res.json(res.skeJsonResponse(null));
+                        return res.echoJsonResponse(null);
                     });
-                })
+                });
             });
         });
     });
@@ -126,7 +141,7 @@ router.delete('/:id', authenticate({ roles: ['sysadmin','admin','manager','user'
 router.put('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), function(req, res, next) {
     // The user must have a valid id in the body,
     if(!req.body.id && req.body._id) req.body.id = req.body._id;
-    if(!req.body.id) return res.json(res.skeJsonResponse(new Error("Failed to locate reservoir.")));
+    if(!req.body.id) return res.echoJsonResponse(new Error("Failed to locate reservoir."));
 
     let search = {
         "_reservoir._id": req.params.id,
@@ -143,8 +158,8 @@ router.put('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), f
 
     schema.AccessKey.populate(['_account','_reservoir']).findOne(search, function(err, accessKey) {
         if(err) return next(err);
-        if(accessKey.access !== 'write' || accessKey.access !== 'full') return res.send(401, "Unauthorised: You do not have the correct permissions to update this item.");
-        if(!accessKey.access) return res.json(res.skeJsonResponse(new Error("Failed to locate reservoir.")));
+        if(req.user.role != 'sysadmin' && req.user.role != 'sysadmin' && (accessKey.access !== 'write' || accessKey.access !== 'full')) return res.send(401, "Unauthorised: You do not have the correct permissions to update this item.");
+        if(!accessKey.access) return res.echoJsonResponse(new Error("Failed to locate reservoir."));
 
         // Now we will update the reservoir to deleted.
         schema.Reservoir.findOne({ _id: req.body._id }, (err, reservoir) => {
@@ -168,7 +183,7 @@ router.put('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), f
 
             reservoir.save((err) => {
                 if(err) return next(err);
-                return res.json(res.skeJsonResponse(null));
+                return res.echoJsonResponse(null);
             });
         });
     });
@@ -176,93 +191,52 @@ router.put('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), f
 
 /* POST create a user */
 router.post('/', authenticate({ roles: ['sysadmin','admin','manager','user'] }), function(req, res, next) {
-    let newUser = {
-        _account: req.body._account,
-        emailAddress: req.body.emailAddress,
-        forename: req.body.forename,
-        surname: req.body.surname,
-        username: req.body.username,
-        hash_password: req.body.password,
-        updated: new Date(),
-        updatedBy: req.user._id,
+    let newReservoir = {
+        _account: req.user._account,
+        name: req.body.name,
+        accessType: req.body.accessType,
+        overflowStrategy: req.body.overflowStrategy,
+        strategy: req.body.strategy,
+        defaultExpiryMs: req.body.defaultExpiryMs,
+        defaultRetentionMs: req.body.defaultRetentionMs,
+        restrictions: req.body.restrictions,
+        isTransient: req.body.isTransient,
         created: new Date(),
-        createdBy: req.user._id,
-        active: true,
-        role: 'user'
+        createdBy: req.user._id
     };
 
-    // We only want sysadmin or admin users to be able to select the user account.
-    if((req.user.role !== 'sysadmin' && req.user.role !== 'admin') || !req.body._account) newUser._account = req.user._account;
-
-    if(req.user.role === 'manager') {
-        // If the user is a account manager, then they can create new account managers.
-        if(req.body.role === 'manager') newUser.role = 'manager';
-
-        // We also need to join the new user to the managers account
-        newUser._account = req.user._account;
-    }
-
-    // If the user is an super/admin then they can make any user type for client accounts (user or manager).
-    if(req.user.role === 'admin' || req.user.role === 'sysadmin')
-    {
-        if(req.body.role === 'manager') newUser.role = 'manager';
-        newUser._account = req.body._account;
-    }
-
-    // If the user is a super admin then they can create more super & admin users
-    if(req.user.role === 'sysadmin' && (req.body.role === 'sysadmin' || req.body.role === 'admin'))
-    {
-        newUser.role = req.body.role;
-    }
-
-    if(req.body.emailInvite === true)
-    {
-        newUser.hash_password = generator.generate({
-            length: 30,
-            numbers: true,
-            symbols: true,
-            uppercase: true,
-            strict: true
-        });
-        newUser.inviteSent = new Date();
-        newUser.inviteStatus = 'invited';
-    }
+    // We only want sysadmin or admin users to be able to select the reservoir account.
+    if(req.user.role === 'sysadmin' && req.user.role === 'admin' && req.body._account) newReservoir._account = req.body._account;
 
     // Lets make a new user :)
-    let newUserObj = new schema.User(newUser);
-    newUserObj.save(function(err, user) {
+    let newReservoirObj = new schema.Reservoir(newReservoir);
+    newReservoirObj.save((err, reservoir) => {
         if(err) return next(err);
 
-        if(req.body.emailInvite === true)
-        {
-            user.populate("_account", (err, user) =>
-            {
-                const emailSender = new EmailSender();
-                emailSender.sendMail("no-reply@echoing.io",
-                    newUser.emailAddress,
-                    "Echoing.io User Invite Request",
-                    "user-invite",
-                    {
-                        user: {
-                            forename: user.forename,
-                            surname: user.surname,
-                            role: user.role,
-                            emailAddress: user.emailAddress
-                        },
-                        account: user._account,
-                        links: {
-                            confirm: pjson.echoing.guiUrl + "/#/invite?uid=" + user._id.toString()
-                        }
-                    }).then(() => {
-                    return res.json(res.skeJsonResponse(null, "User created & Invite Sent."));
-                }, () => {
-                    return res.json(res.skeJsonResponse(null, "User created, but the invite was not sent."));
-                });
-            });
-        }
-        else {
-            return res.json(res.skeJsonResponse(null, "User created."));
-        }
+        let newAccessKeyObj = new schema.AccessKey({
+            _account: reservoir._account,
+            _reservoir: reservoir._id,
+            _user: req.user._id,
+            access: 'full',
+            active: true,
+            notification: {
+                errors: true,
+                events: true,
+                status: true
+            },
+            channels: {
+                email: true
+            },
+            updatedBy: req.user._id,
+            updated: new Date(),
+            createdBy: req.user._id,
+            created: new Date()
+        });
+
+        newAccessKeyObj.save((err, accessKey) => {
+            if(err) return next(err);
+            return res.echoJsonResponse(null, { reservoir: reservoir, accessKey: accessKey });
+        });
     });
 });
 

@@ -8,7 +8,7 @@ const schema = require('../../models');
 const EmailSender = require('../../libs/email/email-sender');
 const pjson = require('../../app.config.json');
 
-// GET accessKeys
+// GET accessInvites
 router.get('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), function(req, res, next) {
     let limit = (req.query.limit) ? parseInt(req.query.limit) : 50;
     let offset = (req.query.offset) ? parseInt(req.query.offset) : 0;
@@ -92,7 +92,7 @@ router.get('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), f
                 { $match: search },
                 { $count: 'count'}
             ]).exec(function (err, result) {
-                return res.json(res.skeJsonResponse(null, { accessKeys: accessKeys, total: result.count }));
+                return res.echoJsonResponse(null, { accessKeys: accessKeys, total: result.count });
             });
         });
     }
@@ -105,7 +105,7 @@ router.get('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), f
             schema.AccessKey.populate(['_account','_reservoir']).countDocuments(search, function (err, count) {
                 if (err) return next(err);
 
-                return res.json(res.skeJsonResponse(null, { accessKeys: accessKeys, total: count }));
+                return res.echoJsonResponse(null, { accessKeys: accessKeys, total: count });
             });
         });
     }
@@ -126,12 +126,12 @@ router.get('/:id/invite', function(req, res, next) {
             safeUser.passwordSalt = undefined;
             safeUser.passwordFormat = undefined;
 
-            return res.json(res.skeJsonResponse(null, safeUser));
+            return res.echoJsonResponse(null, safeUser);
         });
     });
 });
 
-/* GET accessKey by id */
+/* GET accessInvite by id */
 router.get('/:id', authenticate({ roles: ['sysadmin','admin','manager','user']}), function(req, res, next) {
     let search = {
         "_id": req.params.id,
@@ -149,41 +149,19 @@ router.get('/:id', authenticate({ roles: ['sysadmin','admin','manager','user']})
     schema.AccessKey.populate(['_account','_reservoir']).findOne(search, function(err, accessKey) {
         if(err) return next(err);
 
-        return res.json(res.skeJsonResponse(null, accessKey));
+        return res.echoJsonResponse(null, accessKey);
     });
 });
 
 router.delete('/:id', authenticate({ roles: ['sysadmin','admin','manager','user']}), function(req, res, next) {
-    let search = {
-        "_id": req.params.id,
-        "$or": []
-    };
-
-    if(req.user.role == 'manager') {
-        search['$or'].push({ '_account._id': req.user._account });
-        search['$or'].push({ '_user': req.user._id });
-    }
-    else if(req.user.role == 'user') {
-        search['_user'] = req.user._id;
-    }
-
-    schema.AccessKey.populate(['_account','_reservoir']).findOne(search, function(err, accessKey) {
-        if(err) return next(err);
-        if(req.user.role !== 'sysadmin' && req.user.role !== 'sysadmin' && accessKey.access !== 'full') return res.send(401, "Unauthorised: You do not have the correct permissions to delete this item.");
-        if(!accessKey.access) return res.json(res.skeJsonResponse(new Error("Failed to locate requested access key.")));
-
-        accessKey.delete((err) => {
-            if(err) return next(err);
-            return res.json(res.skeJsonResponse(null));
-        });
-    });
+    return res.echoJsonResponse(new Error("This method has not be implemented."));
 });
 
-/* PUT update a access key */
+/* PUT update an access invite */
 router.put('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), function(req, res, next) {
     // The user must have a valid id in the body,
     if(!req.body.id && req.body._id) req.body.id = req.body._id;
-    if(!req.body.id) return res.json(res.skeJsonResponse(new Error("Failed to locate access key.")));
+    if(!req.body.id) return res.echoJsonResponse(new Error("Failed to locate access key."));
 
     let search = {
         "_id": req.body.id
@@ -191,7 +169,7 @@ router.put('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), f
 
     schema.AccessKey.findOne(search).populate(['_account','_reservoir']).exec(function(err, accessKey) {
         if(err) return next(err);
-        if(!accessKey) return res.json(res.skeJsonResponse(new Error("Failed to locate reservoir.")));
+        if(!accessKey) return res.echoJsonResponse(new Error("Failed to locate reservoir."));
         if(req.user.role !== 'sysadmin' && req.user.role !== 'admin' && accessKey._account._id != req.user._account._id && accessKey._user != req.user._id) return res.send(401, "Unauthorised: You do not have access to this item.");
         if(req.user.role !== 'sysadmin' && req.user.role !== 'admin' && (accessKey.access !== 'write' || accessKey.access !== 'full')) return res.send(401, "Unauthorised: You do not have the correct permissions to update this item.");
 
@@ -213,12 +191,12 @@ router.put('/', authenticate({ roles: ['sysadmin','admin','manager','user']}), f
 
         accessKey.save((err) => {
             if(err) return next(err);
-            return res.json(res.skeJsonResponse(null));
+            return res.echoJsonResponse(null);
         });
     });
 });
 
-/* POST create a access key */
+/* POST create a access invite */
 router.post('/', authenticate({ roles: ['sysadmin','admin','manager'] }), function(req, res, next) {
     let search = {
         "_reservoir._id": req.body._reservoir,
@@ -237,7 +215,7 @@ router.post('/', authenticate({ roles: ['sysadmin','admin','manager'] }), functi
     schema.AccessKey.populate(['_account','_reservoir']).findOne(search, function(err, accessKey) {
         if(err) return next(err);
         if(req.user.role !== 'sysadmin' && req.user.role !== 'sysadmin' && (accessKey.access !== 'write' || accessKey.access !== 'full')) return res.send(401, "Unauthorised: You do not have the correct permissions to create a new access key.");
-        if(!accessKey.access) return res.json(res.skeJsonResponse(new Error("Failed to locate your access key for this reservoir.")));
+        if(!accessKey.access) return res.echoJsonResponse(new Error("Failed to locate your access key for this reservoir."));
 
         let newAccessKey = {
             _account: req.user._account,
@@ -266,7 +244,7 @@ router.post('/', authenticate({ roles: ['sysadmin','admin','manager'] }), functi
         let newAccessKeyObj = new schema.AccessKey(newReservoir);
         newAccessKeyObj.save((err, accessKey) => {
             if (err) return next(err);
-            return res.json(res.skeJsonResponse(null, { accessKey: accessKey }));
+            return res.echoJsonResponse(null, { accessKey: accessKey });
         });
     });
 });

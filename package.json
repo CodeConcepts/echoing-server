@@ -14,13 +14,17 @@
     "express": "~4.16.1",
     "express-session": "^1.17.0",
     "generate-password": "^1.5.1",
+    "hat": "0.0.3",
     "http-errors": "~1.6.3",
     "moment": "^2.24.0",
     "mongoose": "^5.9.7",
     "morgan": "~1.9.1",
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
+    "passport-localapikey": "0.0.3",
     "pug": "^2.0.4",
-    "q": "^1.5.1"
+    "q": "^1.5.1",
+    "sentencer": "^0.2.1",
+    "title-case": "^3.0.2"
   }
 }

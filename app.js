@@ -8,6 +8,7 @@ var logger = require('morgan');
 
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
+const LocalAPIKeyStrategy = require('passport-localapikey').Strategy;
 
 const mongoose = require('mongoose');
 const schema = require('./models');
@@ -18,6 +19,7 @@ const SystemInit = require('./system-init');
 global.gConfig = require('./app.config.json');
 
 // Lets open the db connection
+mongoose.set('debug', true);
 mongoose.set('useCreateIndex', true);
 mongoose.connect(global.gConfig.echoing.database.connection, global.gConfig.echoing.database.options);
 var db = mongoose.connection;
@@ -62,6 +64,37 @@ passport.use(new LocalStrategy({},
     }
 ));
 
+// Use the LocalStrategy within Passport.
+passport.use(new LocalAPIKeyStrategy(
+    function(apiKey, done) {
+      schema.AccessKey.findOne({ key: apiKey }).populate(['_user','_account','_reservoir']).exec(function(err, accessKey) {
+        if(err) return done(err);
+        if(!accessKey || accessKey.active === false) return done(null, false, { message: 'Invalid API Key.' });
+        if(accessKey._account.deleted === true || !accessKey._user) return done(null, false, { message: 'Inactive/Deleted Account.' });
+
+        // Lets make the user object safe to pass around and even pass back to the browser.
+        let safeUser = accessKey._user.toObject();
+        safeUser.password = undefined;
+        safeUser.passwordSalt = undefined;
+        safeUser.passwordFormat = undefined;
+
+        // We want to mark the session as an apiKeySession
+        safeUser.apiKeySession = true;
+        safeUser.apiKeyAccess = accessKey.access;
+        safeUser._accessKey = accessKey._id;
+        safeUser._reservoir = accessKey._reservoir;
+
+        // Update the last login date and save.
+        accessKey._user.lastLogin = new Date();
+        accessKey._user.save((err) => {
+          if(err) return done(err);
+
+          return done(null,safeUser);
+        });
+      });
+    }
+));
+
 var app = express();
 
 // view engine setup
@@ -82,25 +115,33 @@ app.use(session({
 
 // lets add a middleware function to standardise our responses
 app.use(function(req, res, next) {
-  res.skeJsonResponse = function (error, data) {
+  res.echoJsonResponse = function (error, data) {
+    let response;
     if(error) {
-      return { status: "ERROR", message: error.message };
+      response = { status: "ERROR", message: error.message };
     }
     else {
-      return { status: "OK", data: data }
+      response = { status: "OK", data: data }
     }
   };
-  next();
+  return res.json(response);
 });
 
 // initialize passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Echoing.io - Admin site api paths
 app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
 app.use('/api/user', require('./routes/api/user'));
 app.use('/api/account', require('./routes/api/account'));
+app.use('/api/reservoir', require('./routes/api/reservoir'));
+app.use('/api/accessKey', require('./routes/api/accessKey'));
+
+// Echoing.io - External api paths
+app.use('/external/api/v1', require('./routes/external/api/v1/index'));
+app.use('/external/api/v1/reservoir', require('./routes/external/api/v1/reservoir'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

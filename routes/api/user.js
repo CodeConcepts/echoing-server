@@ -21,7 +21,7 @@ router.put('/password',authenticate({ user: { body: "id" } }), function(req, res
     // Lets do the update.
     schema.User.updateOne({ _id: req.body.id }, updatedUser, function(err) {
         if(err) return next(err);
-        return res.json(res.skeJsonResponse(null, "User password changed."));
+        return res.echoJsonResponse(null, "User password changed.");
     });
 });
 
@@ -54,11 +54,21 @@ router.get('/', authenticate({ roles: ['sysadmin','admin','manager']}), function
             foreignField: "_id",
             as: "_account"
             } },
-        { $match: { "_account.deleted": false } },
-        { $unwind: "$_account" }
+        { $unwind: "$_account" },
+        { $match: search }
     ]).skip(offset).limit(limit).exec(function(err, users) {
         if(err) return next(err);
-        schema.User.countDocuments(search, function(err, count) {
+        schema.User.aggregate([
+            { $lookup: {
+                    from: "accounts",
+                    localField: "_account",
+                    foreignField: "_id",
+                    as: "_account"
+                } },
+            { $unwind: "$_account" },
+            { $match: search },
+            { $count: 'count' }
+        ]).exec(function(err, result) {
             if(err) return next(err);
             let safeUsers = [];
 
@@ -68,9 +78,10 @@ router.get('/', authenticate({ roles: ['sysadmin','admin','manager']}), function
                 safeUser.passwordSalt = undefined;
                 safeUser.passwordFormat = undefined;
                 safeUsers.push(safeUser);
+
             });
 
-            return res.json(res.skeJsonResponse(null, { users: safeUsers, total: count }));
+            return res.echoJsonResponse(null, { users: safeUsers, total: result.count });
         });
     });
 });
@@ -83,15 +94,15 @@ router.get('/roles', authenticate(), function(req, res){
         roles = [...roles, { value: 'admin', text: 'Administrator' }, { value: 'sysadmin', text: 'System Administrator' }];
     }
 
-    res.json(res.skeJsonResponse(null, roles));
+    return res.echoJsonResponse(null, roles);
 });
 
 /* GET user by id */
 router.get('/:id/invite', function(req, res, next) {
     schema.User.findOne({ _id: req.params.id }, function(err, user) {
         if(err) return next(err);
-        if(!user || !user.inviteStatus || user.inviteStatus !== 'invited') return res.json(res.skeJsonResponse(new Error("Failed to re-send invite, incorrect invite status.")));
-        if(moment().isAfter(moment(user.inviteSent).add(24, 'hours'))) return res.json(res.skeJsonResponse(new Error("Sorry your invite has expired, please ask for it to be sent again.")));
+        if(!user || !user.inviteStatus || user.inviteStatus !== 'invited') return res.echoJsonResponse(new Error("Failed to re-send invite, incorrect invite status."));
+        if(moment().isAfter(moment(user.inviteSent).add(24, 'hours'))) return res.echoJsonResponse(new Error("Sorry your invite has expired, please ask for it to be sent again."));
 
         user.populate("_account", (err, user) => {
             if(err) return next(err);
@@ -101,7 +112,7 @@ router.get('/:id/invite', function(req, res, next) {
             safeUser.passwordSalt = undefined;
             safeUser.passwordFormat = undefined;
 
-            return res.json(res.skeJsonResponse(null, safeUser));
+            return res.echoJsonResponse(null, safeUser);
         });
     });
 });
@@ -116,7 +127,7 @@ router.get('/:id', authenticate({ user: { param: "id" } }), function(req, res, n
         safeUser.passwordSalt = undefined;
         safeUser.passwordFormat = undefined;
 
-        return res.json(res.skeJsonResponse(null, safeUser));
+        return res.echoJsonResponse(null, safeUser);
     });
 });
 
@@ -125,15 +136,15 @@ router.delete('/:id', authenticate({ roles: ['sysadmin'] , user: { param: "id" }
     // and either reallocated them to another user or delete them.
     schema.User.deleteOne({ _id: req.params.id }, function(err) {
         if(err) return next(err);
-        return res.json(res.skeJsonResponse(null));
+        return res.echoJsonResponse(null);
     });
 });
 
 router.get('/:id/resend', authenticate({ roles: ['sysadmin'] , user: { param: "id" } }), function(req, res, next) {
     schema.User.findOne({ _id: req.params.id }, function(err, user) {
         if(err) return next(err);
-        if(!user) return res.json(res.skeJsonResponse(new Error("Failed to re-send invite, unknown user.")));
-        if(user.inviteStatus !== 'invited') return res.json(res.skeJsonResponse(new Error("Failed to re-send invite, incorrect invite status.")));
+        if(!user) return res.echoJsonResponse(new Error("Failed to re-send invite, unknown user."));
+        if(user.inviteStatus !== 'invited') return res.echoJsonResponse(new Error("Failed to re-send invite, incorrect invite status."));
 
         user.inviteSent = new Date();
         user.save();
@@ -154,7 +165,7 @@ router.get('/:id/resend', authenticate({ roles: ['sysadmin'] , user: { param: "i
                     confirm: pjson.guiUrl + "/#/invite?uid=" + user._id.toString()
                 }
             }).then(() => {
-            return res.json(res.skeJsonResponse(null, "User Invite re-sent."));
+            return res.echoJsonResponse(null, "User Invite re-sent.");
         });
     });
 });
@@ -166,9 +177,9 @@ router.put('/accept', function(req, res, next) {
 
     schema.User.findOne({ _id: req.body.id }, function(err, user) {
         if(err) return next(err);
-        if(!user) return res.json(res.skeJsonResponse(new Error("Failed to accept invite, unknown user.")));
-        if(user.inviteStatus !== 'invited') return res.json(res.skeJsonResponse(new Error("Failed to accept invite, incorrect invite status.")));
-        if(moment().isAfter(moment(user.inviteSent).add(24, 'hours'))) return res.json(res.skeJsonResponse(new Error("Sorry your invite has expired, please ask for it to be sent again.")));
+        if(!user) return res.echoJsonResponse(new Error("Failed to accept invite, unknown user."));
+        if(user.inviteStatus !== 'invited') return res.echoJsonResponse(new Error("Failed to accept invite, incorrect invite status."));
+        if(moment().isAfter(moment(user.inviteSent).add(24, 'hours'))) return res.echoJsonResponse(new Error("Sorry your invite has expired, please ask for it to be sent again."));
 
         user.hash_password = req.body.password;
         user.inviteStatus = 'accepted';
@@ -176,7 +187,7 @@ router.put('/accept', function(req, res, next) {
 
         user.save(function(err) {
             if(err) return next(err);
-            return res.json(res.skeJsonResponse(null, "User Updated."));
+            return res.echoJsonResponse(null, "User Updated.");
         });
     });
 });
@@ -227,7 +238,7 @@ router.put('/', authenticate({ user: { body: "id" } }), function(req, res, next)
     // Lets do the update.
     schema.User.updateOne({ _id: req.body.id }, updatedUser, function(err) {
         if(err) return next(err);
-        return res.json(res.skeJsonResponse(null, "User Updated."));
+        return res.echoJsonResponse(null, "User Updated.");
     });
 });
 
@@ -311,14 +322,14 @@ router.post('/', authenticate({ roles: ['sysadmin','admin','manager'] }), functi
                             confirm: pjson.echoing.guiUrl + "/#/invite?uid=" + user._id.toString()
                         }
                     }).then(() => {
-                    return res.json(res.skeJsonResponse(null, "User created & Invite Sent."));
+                    return res.echoJsonResponse(null, "User created & Invite Sent.");
                 }, () => {
-                    return res.json(res.skeJsonResponse(null, "User created, but the invite was not sent."));
+                    return res.echoJsonResponse(null, "User created, but the invite was not sent.");
                 });
             });
         }
         else {
-            return res.json(res.skeJsonResponse(null, "User created."));
+            return res.echoJsonResponse(null, "User created.");
         }
     });
 });
