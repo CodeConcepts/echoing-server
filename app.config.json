@@ -6,7 +6,9 @@
       "options": {
         "useNewUrlParser": true,
         "useUnifiedTopology": true
-      }
+      },
+      "maxExpiryMs": 31622400000,
+      "debug": false
     },
     "email": {
       "emailTplsDir": "./templates/email",

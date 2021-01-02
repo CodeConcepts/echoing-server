@@ -19,7 +19,7 @@ const SystemInit = require('./system-init');
 global.gConfig = require('./app.config.json');
 
 // Lets open the db connection
-mongoose.set('debug', true);
+mongoose.set('debug', global.gConfig.debug);
 mongoose.set('useCreateIndex', true);
 mongoose.connect(global.gConfig.echoing.database.connection, global.gConfig.echoing.database.options);
 var db = mongoose.connection;
@@ -123,8 +123,10 @@ app.use(function(req, res, next) {
     else {
       response = { status: "OK", data: data }
     }
+    return res.json(response);
   };
-  return res.json(response);
+
+  return next();
 });
 
 // initialize passport middleware
@@ -142,6 +144,7 @@ app.use('/api/accessKey', require('./routes/api/accessKey'));
 // Echoing.io - External api paths
 app.use('/external/api/v1', require('./routes/external/api/v1/index'));
 app.use('/external/api/v1/reservoir', require('./routes/external/api/v1/reservoir'));
+app.use('/external/api/v1/item', require('./routes/external/api/v1/item'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
