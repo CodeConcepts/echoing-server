@@ -26,6 +26,7 @@ router.get('/', passport.authenticate('localapikey', { session: false }), functi
                 let data = [];
                 asynk.allSeries(items, (item, nextItem) => {
                     let helper = new ItemHelper(item);
+
                     if(helper.item.expiryMs !== 0 && moment(helper.item.expires).isBefore(moment()))
                     {
                         helper.complete('expired', reservoir, (err, item) => {

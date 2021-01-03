@@ -82,6 +82,7 @@ class ItemHelper {
 
         return self;
     }
+
     complete(reason, reservoir, cb) {
         let self = this;
         let helper = new ReservoirHelper(reservoir);
@@ -95,14 +96,15 @@ class ItemHelper {
             self.item.purged = moment().toDate();
         }
 
-        self.item.save((err, item) => {
+        self.item.save((err) => {
             if(err) return cb(err);
 
-            helper.incrementProcessed(item, (err, reservoir) => {
-                return cb(err, item);
+            helper.incrementProcessed(self.item, (err, reservoir) => {
+                return cb(err, self.item);
             });
         });
     }
+
     collected(accessKey, allAccessKeys, reservoir, cb) {
         let self = this;
 
@@ -111,21 +113,20 @@ class ItemHelper {
         // Lets assume all the access keys have collected the data, unless we find an access key that has not.
         let allCollected = true;
         for (let i = 0; i < allAccessKeys.length; i++) {
-            let currentKey = self.item.collected.find(obj => obj._accessKey == allAccessKeys[i]._accessKey);
+            let currentKey = self.item.collected.find(obj => obj._accessKey.toString() === allAccessKeys[i]._id.toString());
             if (!currentKey)
                 allCollected = false;
         }
 
-        // All the access keys have collected the data, now we can mark the item as completed.
-        if (allCollected === true) {
-            return self.complete('collected', reservoir, cb);
-        }
-
-        else {
-            self.item.save((err, item) => {
+        self.item.save((err, item) => {
+            // All the access keys have collected the data, now we can mark the item as completed.
+            if (allCollected === true) {
+                return self.complete('collected', reservoir, cb);
+            }
+            else {
                 return cb(err, item);
-            });
-        }
+            }
+        });
     }
 };
 

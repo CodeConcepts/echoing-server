@@ -47,6 +47,7 @@ db.once('open',() => {
 function doProcessing(cb) {
     schema.ReservoirItem.find({  
         'purged': { '$exists': false },
+        'completed': { '$exists': true },
         'retentionExpires': { '$lt': new Date() } 
     }).populate('_reservoir')
       .sort({ "created": 1 })
@@ -78,15 +79,23 @@ function doProcessing(cb) {
                     // If the item retention has expired. Then lets purge the items data.
                     if(moment(itemHelper.item.retentionExpires).isBefore(moment()))
                     {
+                        let itemSize = item.itemSizeBytes;
                         item.purged = moment().toDate();
                         item.data = null;
 
-                        item.save((err, item) => {
+                        item.save((err) => {
                             if(err) {
                                 console.error("ERROR ITEM ID: " + item._id);
                                 console.error(err); 
                             }
-                            return nextItem();
+
+                            helper.updateCurrentSize(item, (err) => {
+                                if(err) {
+                                    console.error("ERROR ITEM ID: " + item._id);
+                                    console.error(err); 
+                                }
+                                return nextItem();
+                            });
                         });
                     }
                     else

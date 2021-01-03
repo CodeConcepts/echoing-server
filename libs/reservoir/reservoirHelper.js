@@ -28,6 +28,27 @@ class ReservoirHelper {
         
         self.reservoir.processedItemCount++;
         self.reservoir.currentItemCount--;
+        
+        // If the reason is expiered we need to increment the expired counter.
+        if(item.completedReason === 'expired') {
+            self.reservoir.expiredItemCount++;
+        }
+
+        self.reservoir.save((err, reservoir) => {
+            if(err) return cb(err);
+
+            if(!item.purged) {
+                return cb(err, reservoir);
+            } else {
+                self.updateCurrentSize(item, (err) => {
+                    return cb(err, reservoir);
+                });
+            }
+        });
+    }
+
+    updateCurrentSize(item, cb) {
+        let self = this;
         self.reservoir.currentSizeBytes -= item.itemSizeBytes;
         self.reservoir.save((err, reservoir) => {
             return cb(err, reservoir);

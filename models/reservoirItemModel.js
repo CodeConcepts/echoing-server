@@ -25,7 +25,7 @@ var reservoirItemModel = new Schema({
     ],
     purged: { type: Date },
     completed: { type: Date },
-    completedReason: { type: String, enum: ['expired','delivered','deleted'] },
+    completedReason: { type: String, enum: ['expired','collected','deleted'] },
     created: { type: Date, required: true, default: Date.now }
 });
 
