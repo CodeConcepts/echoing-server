@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 module.exports = {
     User: mongoose.model("User", require("./userModel")),
+    UserDevice: mongoose.model("UserDevice", require("./userDeviceModel")),
     Account: mongoose.model("Account", require("./accountModel")),
     AccessKey: mongoose.model("AccessKey", require("./accessKeyModel")),
     AccessInvite: mongoose.model("AccessInvite", require("./accessInviteModel")),

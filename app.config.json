@@ -1,6 +1,7 @@
 {
   "echoing": {
     "guiUrl": "http://localhost:8080",
+    "deviceHashSecret": "rDBhoPu4AotXGgzt3XHSSvotYH9jBJinZsTeTpsG",
     "database": {
       "connection": "mongodb://vps2.codeconcepts.net/echoing-dev",
       "options": {

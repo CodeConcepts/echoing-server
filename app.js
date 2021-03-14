@@ -64,34 +64,103 @@ passport.use(new LocalStrategy({},
     }
 ));
 
-// Use the LocalStrategy within Passport.
+// Use the LocalAPIStrategy.
 passport.use(new LocalAPIKeyStrategy(
     function(apiKey, done) {
-      schema.AccessKey.findOne({ key: apiKey }).populate(['_user','_account','_reservoir']).exec(function(err, accessKey) {
-        if(err) return done(err);
-        if(!accessKey || accessKey.active === false) return done(null, false, { message: 'Invalid API Key.' });
-        if(accessKey._account.deleted === true || !accessKey._user) return done(null, false, { message: 'Inactive/Deleted Account.' });
-
-        // Lets make the user object safe to pass around and even pass back to the browser.
-        let safeUser = accessKey._user.toObject();
-        safeUser.password = undefined;
-        safeUser.passwordSalt = undefined;
-        safeUser.passwordFormat = undefined;
-
-        // We want to mark the session as an apiKeySession
-        safeUser.apiKeySession = true;
-        safeUser.apiKeyAccess = accessKey.access;
-        safeUser._accessKey = accessKey._id;
-        safeUser._reservoir = accessKey._reservoir;
-
-        // Update the last login date and save.
-        accessKey._user.lastLogin = new Date();
-        accessKey._user.save((err) => {
+      if(apiKey.indexOf('::') < 0)
+      {
+        schema.AccessKey.findOne({ key: apiKey }).populate(['_user','_account','_reservoir']).exec(function(err, accessKey) {
           if(err) return done(err);
+          if(!accessKey || accessKey.active === false) return done(null, false, { message: 'Invalid API Key.' });
+          if(accessKey._account.deleted === true || !accessKey._user) return done(null, false, { message: 'Inactive/Deleted Account.' });
 
-          return done(null,safeUser);
+          // Lets make the user object safe to pass around and even pass back to the browser.
+          let safeUser = accessKey._user.toObject();
+          safeUser.password = undefined;
+          safeUser.passwordSalt = undefined;
+          safeUser.passwordFormat = undefined;
+
+          // We want to mark the session as an apiKeySession
+          safeUser.apiKeySession = true;
+          safeUser.apiKeyAccess = accessKey.access;
+          safeUser._accessKey = accessKey._id;
+          safeUser._reservoir = accessKey._reservoir;
+
+          // Update the last login date and save.
+          accessKey._user.lastLogin = new Date();
+          accessKey._user.save((err) => {
+            if(err) return done(err);
+
+            return done(null,safeUser);
+          });
         });
-      });
+      }
+      else
+      {
+        let keyParts = apiKey.split("::");
+        let deviceKey = keyParts[0];
+        let reservoir = keyParts[1];
+
+        schema.UserDevice.findOne({ key: deviceKey }).populate(['_user']).exec(function(err, userDevice) {
+          if(err) return done(err);
+          if(!userDevice) return done(null, false, { message: 'Invalid Device Key.' });
+
+          if(!reservoir || reservoir === '')
+          {
+            // Lets make the user object safe to pass around and even pass back to the browser.
+            let safeUser = userDevice._user.toObject();
+            safeUser.password = undefined;
+            safeUser.passwordSalt = undefined;
+            safeUser.passwordFormat = undefined;
+
+            // We want to mark the session as an apiKeySession
+            safeUser.apiKeySession = false;
+            safeUser.userDeviceKeySession = true; 
+            
+            // Update the last login date and save.
+            userDevice._user.lastLogin = new Date();
+            userDevice.lastLogin = new Date();
+            userDevice.save((err) => {
+              if(err) return done(err);
+
+              userDevice._user.save((err) => {
+                if(err) return done(err);
+  
+                return done(null,safeUser);
+              });  
+            });
+          }
+          else
+          {
+            schema.AccessKey.findOne({ _user: userDevice._user, _reservoir: reservoir }).populate(['_user','_account','_reservoir']).exec(function(err, accessKey) {
+              if(err) return done(err);
+              if(!accessKey || accessKey.active === false) return done(null, false, { message: 'Invalid API Key.' });
+              if(accessKey._account.deleted === true || !accessKey._user) return done(null, false, { message: 'Inactive/Deleted Account.' });
+
+              // Lets make the user object safe to pass around and even pass back to the browser.
+              let safeUser = accessKey._user.toObject();
+              safeUser.password = undefined;
+              safeUser.passwordSalt = undefined;
+              safeUser.passwordFormat = undefined;
+
+              // We want to mark the session as an apiKeySession
+              safeUser.apiKeySession = true;
+              safeUser.userDeviceKeySession = true;
+              safeUser.apiKeyAccess = accessKey.access;
+              safeUser._accessKey = accessKey._id;
+              safeUser._reservoir = accessKey._reservoir;
+
+              // Update the last login date and save.
+              accessKey._user.lastLogin = new Date();
+              accessKey._user.save((err) => {
+                if(err) return done(err);
+
+                return done(null,safeUser);
+              });
+            });
+          }
+        });  
+      }
     }
 ));
 

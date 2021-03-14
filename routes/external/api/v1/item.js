@@ -14,10 +14,28 @@ const pjson = require('../../../../app.config.json');
 
 // GET items
 router.get('/', passport.authenticate('localapikey', { session: false }), function(req, res, next) {
+    let limit = (req.query.limit) ? req.query.limit : 100;
+
+    if(limit > 500) {
+        return next(new Error("Too many items requested, Maximum request limit is 500 items."));
+    }
+
     schema.Reservoir.findOne({ _id: req.user._reservoir._id }, (err, reservoir) => {
         if(err) return next(err);
 
-        schema.ReservoirItem.find({ '_reservoir': req.user._reservoir._id, 'completed': { '$exists': false }, 'collected': { '$not': { '$elemMatch' : { '_accessKey': req.user._accessKey } } } }).sort({ "created": 1 }).exec((err, items) => {
+        schema.ReservoirItem.find({ 
+            '_reservoir': req.user._reservoir._id, 
+            'completed': { 
+                '$exists': false 
+            }, 
+            'collected': { 
+                '$not': { 
+                    '$elemMatch' : { 
+                        '_accessKey': req.user._accessKey 
+                    } 
+                } 
+            } 
+        }).sort({ "created": 1 }).limit(limit).exec((err, items) => {
             if(err) return next(err);
 
             schema.AccessKey.find({ '_reservoir': req.user._reservoir._id }, (err, accessKeys) => {

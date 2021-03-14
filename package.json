@@ -26,5 +26,9 @@
     "q": "^1.5.1",
     "sentencer": "^0.2.1",
     "title-case": "^3.0.2"
+  },
+  "devDependencies": {
+    "shipit-cli": "^5.3.0",
+    "shipit-deploy": "^5.3.0"
   }
 }
