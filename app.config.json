@@ -3,7 +3,7 @@
     "guiUrl": "http://localhost:8080",
     "deviceHashSecret": "rDBhoPu4AotXGgzt3XHSSvotYH9jBJinZsTeTpsG",
     "database": {
-      "connection": "mongodb://vps2.codeconcepts.net/echoing-dev",
+      "connection": "mongodb://453837fcc363c298912efdcecdfe4134:Harl3yCamb1ll13#2021@11a.mongo.evennode.com:27018,11b.mongo.evennode.com:27018/453837fcc363c298912efdcecdfe4134?replicaSet=eu-11",
       "options": {
         "useNewUrlParser": true,
         "useUnifiedTopology": true
@@ -18,6 +18,49 @@
         "port": 1025,
         "tls": { "rejectUnauthorized": false }
       }
-    }
+    },
+    "mixers": [
+      { 
+        "id": "email.mixer.echoing.io",
+        "name": "Email", 
+        "description": "This mixer will allow you to send the an email to one or more recipients.", 
+        "helpUrl": "https://wiki.echoing.io/documentation/mixers",
+        "requires": "mixers/emailMixer.js",
+        "tabs": [
+          {
+            "label": "Email Details",
+            "parameters": [
+              {
+                "name": "from",
+                "label": "From Address",
+                "type": "text",
+                "pattern": "^(([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)(\\s*;\\s*|\\s*$))$|(\\{\\{\\s?[a-zA-Z0-9\\.\\-\\_]*\\s?\\}\\}$)",
+                "required": true,
+                "showSubButton": true
+              },
+              {
+                "name": "to",
+                "label": "To Address(s)",
+                "note": "Seperate multiple addresses with a semicolon (;)",
+                "type": "text",
+                "pattern": "^(([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)(\\s*;\\s*|\\s*$))+$|(\\{\\{\\s?[a-zA-Z0-9\\.\\-\\_]*\\s?\\}\\}$)",
+                "required": true,
+                "showSubButton": true
+              },
+              {
+                "name": "bcc",
+                "label": "BCC Address(s)",
+                "note": "Seperate multiple addresses with a semicolon (;)",
+                "type": "text",
+                "pattern": "^(([a-zA-Z0-9_\\-\\.]+)@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.)|(([a-zA-Z0-9\\-]+\\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\\]?)(\\s*;\\s*|\\s*$))+$|(\\{\\{\\s?[a-zA-Z0-9\\.\\-\\_]*\\s?\\}\\}$)",
+                "required": true,
+                "showSubButton": true
+              }
+            ]
+
+          }
+        ]
+      }
+    ]
   }
 }
