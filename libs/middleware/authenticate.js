@@ -18,20 +18,20 @@ module.exports = function authenticate(authObject) {
         if(!authObject) return next();
 
         // If we have a authObject, we need to be logged in
-        if(authObject && !req.user) return res.send(401, "Unauthorised: You need to login first.");
+        if(authObject && !req.user) return res.status(401).send("Unauthorised: You need to login first.");
 
         // Unless told otherwise we reject apiKeySessions
         if(req.user.apiKeySession === true && 
            (!authObject.allowApiKeySessions || authObject.allowApiKeySessions === false) &&
            (!authObject.allowApiKeySessionsOnly || authObject.allowApiKeySessionsOnly === false)) {
-               return res.send(401, "Unauthorised: You can NOT access this method with an API Key.");
+               return res.status(401).send("Unauthorised: You can NOT access this method with an API Key.");
            }
 
         if(authObject.allowApiKeySessionsOnly && 
            authObject.allowApiKeySessionsOnly === true && 
            (!req.user.apiKeySession || req.user.apiKeySession == false))
            {
-            return res.send(401, "Unauthorised: You can ONLY access this method with an API Key.");
+            return res.status(401).send("Unauthorised: You can ONLY access this method with an API Key.");
            }
 
         // If the user is a sysadmin user, lets just let them do anything :)
@@ -62,7 +62,7 @@ module.exports = function authenticate(authObject) {
         });
 
         checkUserAccess(authObject, req.user, function(err) {
-            if(err) return res.send(401, "Unauthorised: " + err.message);
+            if(err) return res.status(401).send("Unauthorised: " + err.message);
             return next();
         });
     };
