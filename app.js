@@ -168,6 +168,9 @@ passport.use(new LocalAPIKeyStrategy(
 
 var app = express();
 
+// We need to trust the proxy
+app.set('trust proxy', 1);
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
