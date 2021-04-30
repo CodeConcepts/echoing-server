@@ -187,7 +187,8 @@ app.use(session({
   store: new mongoStore({ mongooseConnection: mongoose.connection }),
   cookie: {
     httpOnly: false,
-    secure: false
+    secure: false,
+    sameSite: 'none'
   }
 }));
 
