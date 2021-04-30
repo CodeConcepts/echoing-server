@@ -14,7 +14,7 @@ const pjson = require('../../../../app.config.json');
 
 // GET items
 router.get('/', passport.authenticate('localapikey', { session: false }), function(req, res, next) {
-    let limit = (req.query.limit) ? req.query.limit : 100;
+    let limit = (req.query.limit) ? parseInt(req.query.limit) : 100;
 
     if(limit > 500) {
         return next(new Error("Too many items requested, Maximum request limit is 500 items."));
@@ -42,12 +42,12 @@ router.get('/', passport.authenticate('localapikey', { session: false }), functi
                 if(err) return next(err);
 
                 let data = [];
-                asynk.allSeries(items, (item, nextItem) => {
+                asynk.eachSeries(items, (item, nextItem) => {
                     let helper = new ItemHelper(item);
 
                     if(helper.item.expiryMs !== 0 && moment(helper.item.expires).isBefore(moment()))
                     {
-                        helper.complete('expired', reservoir, (err, item) => {
+                        helper.complete('expired', reservoir, (err) => {
                             return nextItem(err);
                         });
                     }
