@@ -19,7 +19,7 @@
     "hat": "0.0.3",
     "http-errors": "~1.6.3",
     "moment": "^2.24.0",
-    "mongoose": "^5.9.7",
+    "mongoose": "^5.12.7",
     "morgan": "~1.9.1",
     "passport": "^0.4.1",
     "passport-ghost": "^2.3.1",
