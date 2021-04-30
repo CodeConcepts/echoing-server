@@ -174,6 +174,8 @@ app.set('view engine', 'pug');
 
 app.use(cors({
   credentials: true,
+  //origin: [/\.echoing\.io$/]
+
 }));
 app.use(logger('dev'));
 app.use(express.json());
