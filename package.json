@@ -6,9 +6,11 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "agenda": "^4.1.2",
     "app-root-path": "^3.0.0",
     "connect-mongo": "^3.2.0",
     "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
     "debug": "~2.6.9",
     "email-templates": "^7.0.4",
     "express": "~4.16.1",
@@ -20,6 +22,7 @@
     "mongoose": "^5.9.7",
     "morgan": "~1.9.1",
     "passport": "^0.4.1",
+    "passport-ghost": "^2.3.1",
     "passport-local": "^1.0.0",
     "passport-localapikey": "0.0.3",
     "pug": "^2.0.4",
