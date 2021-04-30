@@ -184,7 +184,11 @@ app.use(session({
   secret: 'letsR3cordTh3W0rld!!',
   resave: false,
   saveUninitialized: true,
-  store: new mongoStore({ mongooseConnection: mongoose.connection })
+  store: new mongoStore({ mongooseConnection: mongoose.connection }),
+  cookie: {
+    httpOnly: false,
+    secure: false
+  }
 }));
 
 // lets add a middleware function to standardise our responses
