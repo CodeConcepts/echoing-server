@@ -208,7 +208,10 @@ router.post('/',passport.authenticate('localapikey', { session: false }), functi
         newItemObj.save((err, item) => {
             helper.incrementCurrent(item, (err, reservoir) => {
                 if(err) return next(err);
-
+                delete newItemObj;
+                delete itemHelper;
+                delete helper;
+                delete reservoir;
                 return res.echoJsonResponse(null, item);
             });
         });

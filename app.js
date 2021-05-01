@@ -1,3 +1,4 @@
+"use strict";
 const createError = require('http-errors');
 const express = require('express');
 const cors = require('cors');
@@ -244,5 +245,17 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+function showHeap() {
+  const arr = [1, 2, 3, 4, 5, 6, 9, 7, 8, 9, 10];
+  arr.reverse();
+  const used = process.memoryUsage();
+  for (let key in used) {
+    console.log(`${key} ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+  }
+}
+
+//setInterval(showHeap, 2000);
+//showHeap();
 
 module.exports = app;
