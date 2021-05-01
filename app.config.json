@@ -6,7 +6,9 @@
       "connection": "mongodb://453837fcc363c298912efdcecdfe4134:Harl3yCamb1ll13#2021@11a.mongo.evennode.com:27018,11b.mongo.evennode.com:27018/453837fcc363c298912efdcecdfe4134?replicaSet=eu-11",
       "options": {
         "useNewUrlParser": true,
-        "useUnifiedTopology": true
+        "useUnifiedTopology": true,
+        "useCreateIndex": true,
+        "autoIndex": true
       },
       "maxExpiryMs": 31622400000,
       "debug": false
