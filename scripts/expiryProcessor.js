@@ -25,22 +25,22 @@ db.once('open',() => {
     if(working === false)
     {
         working = true;
-        console.log("Processing Started: " + moment().format("YYYY/DD/MM HH:mm"));
+        //console.log("Processing Started: " + moment().format("YYYY/DD/MM HH:mm"));
         doProcessing((err) => {
             if(err) console.log(error);
             working = false;
-            console.log("Processing Completed");    
+            //console.log("Processing Completed");    
         });
     }
   }, 10000);
 
   // Lets kick the processing off.
   working = true;
-  console.log("Processing Started: " + moment().format("YYYY/DD/MM HH:mm"));
+  //console.log("Processing Started: " + moment().format("YYYY/DD/MM HH:mm"));
   doProcessing((err) => {
       if(err) console.log(error);
       working = false;
-      console.log("Processing Completed");    
+      //console.log("Processing Completed");    
   });
 });
 
@@ -50,9 +50,12 @@ function doProcessing(cb) {
         'expires': { '$lt': new Date() } 
     }).populate('_reservoir')
       .sort({ "created": 1 })
+      .limit(100)
       .exec((err, items) => {
         if(err) return cb(err);
+        if(items.length === 0) return cb();
         
+        console.log("Processing " + items.length + " items.");
         asynk.eachSeries(items, (item, nextItem) => {
             let reservoir = item._reservoir;
             let helper = new ReservoirHelper(reservoir);
@@ -89,7 +92,8 @@ function doProcessing(cb) {
                 });
             }
         }, (err) => {
-            return cb(err);
+            if(err) return cb(err);
+            return doProcessing(cb);
         });
     });
 };
