@@ -255,7 +255,7 @@ function showHeap() {
   }
 }
 
-setInterval(showHeap, 2000);
-showHeap();
+//setInterval(showHeap, 2000);
+//showHeap();
 
 module.exports = app;
