@@ -9,7 +9,7 @@
         "useUnifiedTopology": true,
         "useCreateIndex": true,
         "autoIndex": true,
-        "poolSize": 20
+        "poolSize": 40
       },
       "maxExpiryMs": 31622400000,
       "debug": false
