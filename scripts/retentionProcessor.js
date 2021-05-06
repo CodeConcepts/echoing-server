@@ -14,6 +14,10 @@ global.gConfig = require('../app.config.json');
 // Lets open the db connection
 mongoose.set('debug', global.gConfig.debug);
 mongoose.set('useCreateIndex', true);
+
+// We want to set the pool size nice and low as this process is not to busy.
+global.gConfig.echoing.database.options.poolSize = 5;
+
 mongoose.connect(global.gConfig.echoing.database.connection, global.gConfig.echoing.database.options);
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
