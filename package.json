@@ -27,7 +27,7 @@
     "passport-ghost": "^2.3.1",
     "passport-local": "^1.0.0",
     "passport-localapikey": "0.0.3",
-    "pug": "^3.0.2",
+    "pug": "^3.0.1",
     "q": "^1.5.1",
     "sentencer": "^0.2.1",
     "title-case": "^3.0.2"
