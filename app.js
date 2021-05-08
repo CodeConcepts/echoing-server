@@ -4,7 +4,7 @@ const express = require('express');
 const cors = require('cors');
 
 const session = require('express-session');
-const mongoStore = require('connect-mongo')(session);
+const mongoStore = require('connect-mongo');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
@@ -189,7 +189,7 @@ app.use(session({
   secret: 'letsR3cordTh3W0rld!!',
   resave: false,
   saveUninitialized: true,
-  store: new mongoStore({ mongooseConnection: mongoose.connection }),
+  store: mongoStore.create({ client: mongoose.connection.getClient() }),
   cookie: {
     httpOnly: false,
     secure: true,
