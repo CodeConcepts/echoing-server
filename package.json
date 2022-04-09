@@ -19,7 +19,7 @@
     "generate-password": "^1.5.1",
     "hat": "0.0.3",
     "http-errors": "~1.6.3",
-    "moment": "^2.24.0",
+    "moment": "^2.29.2",
     "mongodb": "^3.6.6",
     "mongoose": "^5.12.7",
     "morgan": "~1.9.1",
